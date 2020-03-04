@@ -9,12 +9,12 @@ catch {
 }
 #endregion
 
-$baseDir = "c:\git\incomm"
-$devOpsOrg = "incommas"
+$baseDir = "c:\git\migration"
+$devOpsOrg = "client"
 $username = "chris.ayers@newsignature.com"
 $personalAccessToken = ""
 
-$projectName = "IAS"
+$projectName = "migration"
 $branch = "master"
 $projectUrl = ("https://dev.azure.com/{0}/{1}" -f $devOpsOrg, $projectName)
 [uri] $policyUri = ("{0}/_apis/policy/configurations?api-version=5.1" -f $projectUrl) 
