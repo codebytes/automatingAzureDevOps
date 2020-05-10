@@ -1,3 +1,0 @@
-organization=https://dev.azure.com/chrisnebbia
-project=cliDemoScaffolding
-workitem_type=Bug
