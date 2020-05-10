@@ -1,0 +1,122 @@
+function createProject {
+    param(
+        [String]$org,
+        [String]$projectName,
+        [String]$process,
+        [String]$sourceControl,
+        [String]$visibility
+    )
+
+
+    Write-Host "`nCreating project with name $($projectName) . . . " 
+    $project = az devops project create --org $org --name $projectName --process $process --source-control $sourceControl --visibility $visibility -o json | ConvertFrom-Json
+    Write-Host "Created project with name $($project.name) and Id $($project.id)"
+    return $project.id
+}
+
+function createRepo {
+    param(
+        [String]$org,
+        [String]$projectID,
+        [String]$repoName
+    )
+
+    Write-Host "`nCreating repository with name $($repoName) . . . " 
+    $repo = az repos create --org $org -p $projectID --name $repoName -o json | ConvertFrom-Json
+    Write-Host "Created repository with name $($repo.name) and Id $($repo.id)"
+    return $repo
+}
+
+Function InitAddGitIgnore([uri]$repoUrl, $headers) {
+    $newHeaders = $headers
+    $newHeaders["Accept"] = "application/json;api-version=5.2-preview.2;excludeUrls=true"
+    $json = "{""refUpdates"":[{""name"":""refs/heads/master"",""oldObjectId"":""0000000000000000000000000000000000000000""}],""commits"":[{""comment"":""Added .gitignore (VisualStudio) file"",""changes"":[{""changeType"":1,""item"":{""path"":""/.gitignore""},""newContentTemplate"":{""name"":""VisualStudio.gitignore"",""type"":""gitignore""}}]}]}";
+    $resp = Invoke-RestMethod -Headers $newHeaders -Uri ("{0}/pushes" -f $repoUrl) -Method Post -Body $json -ContentType "application/json"
+    return $resp
+}
+
+Function Get-GitIgnore {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string[]]$list
+    )
+    $params = ($list | ForEach-Object { [uri]::EscapeDataString($_) }) -join ","
+    Invoke-WebRequest -Uri "https://www.gitignore.io/api/$params" | Select-Object -ExpandProperty content | Out-File -FilePath $(Join-Path -path $pwd -ChildPath ".gitignore") -Encoding ascii
+}
+    
+function templateRepo {
+    param(
+        [String]$repoUrl,
+        [String]$repoPath
+    )
+    
+    $originalDir = Get-Location
+
+    git clone $repo.remoteUrl $repoPath
+    Set-Location $repoPath
+    Get-GitIgnore visualstudio
+    New-Item -ItemType Directory -Force -Path src
+    New-Item -ItemType Directory -Force -Path tests
+    dotnet new globaljson --sdk-version "3.1.201"
+    dotnet new webapi -n $projectName -o src\$projectName
+    dotnet new mstest -n $projectName.Tests -o tests\$projectName.Tests
+    dotnet add tests\$projectName.Tests package coverlet.collector
+    dotnet new sln -n $projectName
+    dotnet sln $projectName.sln add src\$projectName
+    dotnet sln $projectName.sln add tests\$projectName.Tests
+    New-Item -ItemType Directory -Force -Path pipelines
+    Copy-Item (Join-Path $PSScriptRoot ..\Pipelines\sample-dotnet-pipelines.yml) (Join-Path pipelines azure-pipeslines.yml)
+    git add .
+    git commit -m "initial import"
+    git push
+
+    Set-Location $originalDir
+}
+
+function createBuild {
+    param(
+        [String]$repoName,
+        [String]$org,
+        [String]$projectID
+    )
+    $build = az pipelines create --org $org -p $projectID --repository $repoName --name "$repoName Build" --repository-type tfsgit --yml-path "/pipelines/azure-pipeslines.yml" -o json | ConvertFrom-Json
+    return $build
+}
+
+function importRepo {
+    param(
+        [String]$org,
+        [String]$projectID,
+        [String]$repoID,
+        [String]$repoToImport,
+        [String]$repoType
+    )
+    if ($repoToImport -and ($repoType -eq 'Public')) {
+        Write-Host "`nImporting repository from url $($repoToImport)" 
+        $importRepo = az repos import create --org $org -p $projectID -r $repoID --git-url $repoToImport -o json | ConvertFrom-Json
+        Write-Host "Repo imported with Status $($importRepo.status)"
+    }
+    else {
+        Write-Host "Private repo import failed!"
+    }
+}
+
+function publishCodeWiki {
+    param(
+        [String]$org,
+        [String]$projectID,
+        [String]$repo,
+        [String]$wikiName,
+        [String]$path,
+        [String]$wikiType,
+        [String]$branch
+    )
+    if ($wikiType -eq 'codewiki' -and $path -and $branch) {
+        $createCodeWiki = az devops wiki create --name $wikiName --type codewiki --version $branch --mapped-path $path -r $repo --org $org -p $projectID -o json | ConvertFrom-Json
+        Write-Host "New code wiki published with ID : $($createCodeWiki.id)"
+    }
+    else {
+        $createProjectWiki = az devops wiki create --name $wikiName --type projectwiki -org $org -p $projectID -o json | ConvertFrom-Json
+        Write-Host "New project wiki created with ID : $($createProjectWiki.id)"
+    }
+}

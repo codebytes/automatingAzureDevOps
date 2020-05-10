@@ -1,0 +1,83 @@
+parameters:
+- name: name  # defaults for any parameters that aren't specified
+  default: 'Code'
+- name: vmImage
+  default: 'ubuntu-latest'
+- name: codeCoverageThreshHold
+  default: 1
+
+jobs:
+- job: ${{ parameters.name }}
+  pool:
+    vmImage: ${{ parameters.vmImage }}
+  variables:
+    solution: '**/*.sln'
+    buildPlatform: 'Any CPU'
+    buildConfiguration: 'Release'
+    disable.coverage.autogenerate: 'true'
+  steps:
+  - task: DotNetCoreCLI@2
+    displayName: dotnet restore
+    inputs:
+      command: 'restore'
+      projects: '$(solution)'
+      feedsToUse: 'select'
+      vstsFeed: '7b465e8c-87b1-44b1-b9c3-da526229fa2a/5ac44e86-55f4-44a9-a468-fe8cdd43d157'
+
+  - task: DotNetCoreCLI@2
+    displayName: dotnet build
+    inputs:
+      command: build
+      projects: '$(solution)'
+      arguments: '--configuration $(buildConfiguration)'
+
+  # Run all tests with "/p:CollectCoverage=true /p:CoverletOutputFormat=cobertura" to generate the code coverage file
+  - task: DotNetCoreCLI@2
+    displayName: dotnet test
+    inputs:
+      command: test
+      arguments: '--configuration $(BuildConfiguration) --logger trx --collect:"XPlat Code Coverage"'
+      projects: '$(solution)'
+      nobuild: true
+      publishTestResults: false
+    continueOnError: true
+
+  - task: reportgenerator@4
+    inputs:
+      reports: '$(Build.SourcesDirectory)/**/coverage.cobertura.xml'
+      targetdir: 'coveragereport'
+      sourcedirs: '$(Build.SourcesDirectory)'
+
+  - task: PublishCodeCoverageResults@1
+    displayName: 'Publish code coverage'
+    inputs:
+      codeCoverageTool: Cobertura
+      summaryFileLocation: '$(Build.SourcesDirectory)/coveragereport/Cobertura.xml' 
+      reportDirectory: '$(Build.SourcesDirectory)/coveragereport'
+
+  - task: PublishTestResults@2
+    inputs:
+      testResultsFormat: 'VSTest'
+      testResultsFiles: '**/*.trx'
+      mergeTestResults: true
+      failTaskOnFailedTests: true
+
+  - task: BuildQualityChecks@6
+    inputs:
+      checkCoverage: true
+      coverageFailOption: 'fixed'
+      coverageType: 'lines'
+      coverageThreshold: ${{ parameters.codeCoverageThreshHold }}
+
+  - task: DotNetCoreCLI@2
+    inputs:
+      command: publish
+      publishWebProjects: True
+      arguments: '--configuration $(BuildConfiguration) --output $(Build.ArtifactStagingDirectory)'
+      zipAfterPublish: True
+
+  - task: PublishBuildArtifacts@1
+    inputs:
+      PathtoPublish: '$(Build.ArtifactStagingDirectory)'
+      ArtifactName: 'drop'
+      publishLocation: 'Container'

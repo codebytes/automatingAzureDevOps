@@ -1,0 +1,12 @@
+org=https://dev.azure.com/chrisNewSig
+projectName=SampleService
+repoName=SampleService
+requiredReviewers=chris.ayers@newsignature.com
+
+#repoToImport = https://github.com/ishitam8/snake.git
+#teamName=Protocol CLI team
+#optionalReviewers=chris.ayers@newsignature.com
+#teamMembers=chris.ayers@newsignature.com
+#teamAdminMembers=chris.ayers@newsignature.com
+#childIterationNamesList=Sprint1,Sprint2,Sprint3
+#iterationsPermissionsBit=7
