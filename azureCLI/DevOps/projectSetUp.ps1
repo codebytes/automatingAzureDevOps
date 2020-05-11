@@ -26,24 +26,7 @@ function createRepo {
     Write-Host "Created repository with name $($repo.name) and Id $($repo.id)"
     return $repo
 }
-
-Function InitAddGitIgnore([uri]$repoUrl, $headers) {
-    $newHeaders = $headers
-    $newHeaders["Accept"] = "application/json;api-version=5.2-preview.2;excludeUrls=true"
-    $json = "{""refUpdates"":[{""name"":""refs/heads/master"",""oldObjectId"":""0000000000000000000000000000000000000000""}],""commits"":[{""comment"":""Added .gitignore (VisualStudio) file"",""changes"":[{""changeType"":1,""item"":{""path"":""/.gitignore""},""newContentTemplate"":{""name"":""VisualStudio.gitignore"",""type"":""gitignore""}}]}]}";
-    $resp = Invoke-RestMethod -Headers $newHeaders -Uri ("{0}/pushes" -f $repoUrl) -Method Post -Body $json -ContentType "application/json"
-    return $resp
-}
-
-Function Get-GitIgnore {
-    param(
-        [Parameter(Mandatory = $true)]
-        [string[]]$list
-    )
-    $params = ($list | ForEach-Object { [uri]::EscapeDataString($_) }) -join ","
-    Invoke-WebRequest -Uri "https://www.gitignore.io/api/$params" | Select-Object -ExpandProperty content | Out-File -FilePath $(Join-Path -path $pwd -ChildPath ".gitignore") -Encoding ascii
-}
-    
+   
 function templateRepo {
     param(
         [String]$repoUrl,
@@ -54,10 +37,10 @@ function templateRepo {
 
     git clone $repo.remoteUrl $repoPath
     Set-Location $repoPath
-    Get-GitIgnore visualstudio
     New-Item -ItemType Directory -Force -Path src
     New-Item -ItemType Directory -Force -Path tests
-    dotnet new globaljson --sdk-version "3.1.201"
+    dotnet new globaljson 
+    dotnet new gitignore
     dotnet new webapi -n $projectName -o src\$projectName
     dotnet new mstest -n $projectName.Tests -o tests\$projectName.Tests
     dotnet add tests\$projectName.Tests package coverlet.collector
