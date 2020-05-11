@@ -81,7 +81,7 @@ if ($repoName) {
                 New-Item -ItemType Directory -Force -Path $tempRepoPath
             }
         
-            templateRepo -repoUrl $repo.remoteUrl -repoPath $tempRepoPath
+            templateRepo -repoUrl $repo.remoteUrl -repoPath $tempRepoPath -name $repoName
             $build = createBuild -repoName $repo.Name -org $org -projectID $projectID
 
 

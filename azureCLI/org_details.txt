@@ -1,5 +1,5 @@
 org=https://dev.azure.com/chrisNewSig
-projectName=SampleService
+projectName=SampleProject
 repoName=SampleService
 requiredReviewers=chris.ayers@newsignature.com
 

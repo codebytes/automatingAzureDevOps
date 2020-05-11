@@ -30,7 +30,8 @@ function createRepo {
 function templateRepo {
     param(
         [String]$repoUrl,
-        [String]$repoPath
+        [String]$repoPath,
+        [String]$name
     )
     
     $originalDir = Get-Location
@@ -41,16 +42,19 @@ function templateRepo {
     New-Item -ItemType Directory -Force -Path tests
     dotnet new globaljson 
     dotnet new gitignore
-    dotnet new webapi -n $projectName -o src\$projectName
-    dotnet new mstest -n $projectName.Tests -o tests\$projectName.Tests
-    dotnet add tests\$projectName.Tests package coverlet.collector
-    dotnet new sln -n $projectName
-    dotnet sln $projectName.sln add src\$projectName
-    dotnet sln $projectName.sln add tests\$projectName.Tests
+    dotnet new webapi -n "$name" -o "src\$name"
+    dotnet new mstest -n "$name.Tests" -o "tests\$name.Tests"
+    dotnet add "tests\$name.Tests" package coverlet.collector
+    dotnet new sln -n $name
+    dotnet sln $name.sln add "src\$name"
+    dotnet sln $name.sln add "tests\$name.Tests"
+    git add .
+    git commit -m "initial import"
+    git push
     New-Item -ItemType Directory -Force -Path pipelines
     Copy-Item (Join-Path $PSScriptRoot ..\Pipelines\sample-dotnet-pipelines.yml) (Join-Path pipelines azure-pipeslines.yml)
     git add .
-    git commit -m "initial import"
+    git commit -m "Standard Pipeline"
     git push
 
     Set-Location $originalDir
