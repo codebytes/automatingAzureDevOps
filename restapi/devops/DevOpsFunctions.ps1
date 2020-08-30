@@ -1,6 +1,6 @@
 #region Helper
 
-function Get-Headers($username, $personalAccessToken) {
+Function Get-Headers($username, $personalAccessToken) {
     $base64AuthInfo = [Convert]::ToBase64String([Text.Encoding]::ASCII.GetBytes(("{0}:{1}" -f $username, $personalAccessToken)))
     $headers = @{
         "Authorization" = ("Basic {0}" -f $base64AuthInfo)
@@ -9,7 +9,7 @@ function Get-Headers($username, $personalAccessToken) {
     return $headers;
 }
 
-function Write-ErrorFile([string] $errorMessage) {
+Function Write-ErrorFile([string] $errorMessage) {
     <#
     .SYNOPSIS
     
@@ -71,6 +71,22 @@ Function GetRepos([uri]$projectUrl, $headers) {
 
 #region Pipelines
 
+Function Get-AgentPools($org, $headers){
+    $URI = 'https://dev.azure.com/{0}/_apis/distributedtask/pools?api-version=6.0' -f $org 
+    $result = Invoke-RestMethod -Uri $URI -Method Get -ContentType application/json -Headers $headers 
+    return $result.value
+}
+
+Function Create-AgentPool($org, $headers, $poolName){
+    $URI = 'https://dev.azure.com/{0}/_apis/distributedtask/pools?api-version=6.0' -f $org 
+    $Body = @{ 
+        autoProvision = $true 
+        name          = $poolName 
+    } | ConvertTo-Json 
+    $result = Invoke-RestMethod -Uri $URI -Method Post -Body $Body -ContentType application/json -Headers $headers 
+    return $result.value
+}
+
 Function CreateSampleAzurePipelineYML($path) {
     $yml = @'
 # Starter pipeline
@@ -129,7 +145,7 @@ Function CreateYamlBuildDefinition([uri]$projectUrl, [guid]$repoId, $gitRepo, $h
     return $resp;
 }
 
-function Start-Build($projectUrl, $buildDefinitionId, $headers) {
+Function Start-Build($projectUrl, $buildDefinitionId, $headers) {
     $JSONBody = @"
 {
     "definition": {
@@ -142,7 +158,7 @@ function Start-Build($projectUrl, $buildDefinitionId, $headers) {
     return $resp;
 }
 
-function Get-BuildDefinitions([string] $projectUrl, $headers) {
+Function Get-BuildDefinitions([string] $projectUrl, $headers) {
     <#
     .SYNOPSIS
     
@@ -183,7 +199,7 @@ function Get-BuildDefinitions([string] $projectUrl, $headers) {
     }
 }
     
-function Get-BuildDefinition([string] $projectUrl, [string] $Id, $headers) {
+Function Get-BuildDefinition([string] $projectUrl, [string] $Id, $headers) {
 
     <#
     .SYNOPSIS
@@ -228,9 +244,8 @@ function Get-BuildDefinition([string] $projectUrl, [string] $Id, $headers) {
         $response
     }
 }
-    
 
-function Remove-BuildValues([string] $projectUrl, [string] $BuildId, [String[]] $values, [psobject] $headers) {
+Function Remove-BuildValues([string] $projectUrl, [string] $BuildId, [String[]] $values, [psobject] $headers) {
     <#
     .SYNOPSIS
     
@@ -278,8 +293,7 @@ function Remove-BuildValues([string] $projectUrl, [string] $BuildId, [String[]] 
     }
 }
 
-
-function New-BuildDefinition([string] $projectUrl, [string] $body, [psobject] $headers) {
+Function New-BuildDefinition([string] $projectUrl, [string] $body, [psobject] $headers) {
     <#
    .SYNOPSIS
    
@@ -301,31 +315,31 @@ function New-BuildDefinition([string] $projectUrl, [string] $body, [psobject] $h
    .PARAMETER headers
    Header to send with file.  If null, uses default credentials
    #>
-       $response = $null
-       try {
-           $ErrorActionPreference = "Stop"
-           $Url = "$projectUrl/_apis/build/definitions?api-version=2.0"
-           if($headers){
-               $responseBody = Invoke-RestMethod -Uri $Url -Headers $headers -Body $body -Method Post -ContentType application/json;
-           }
-           else {
-               $responseBody = Invoke-RestMethod -Uri $Url -Body $body -Method Post -UseDefaultCredentials -ContentType application/json;
-           }
-           $response = $responseBody.ID
-       }
-       catch{
-           $currentFunction = $MyInvocation.MyCommand
-           $exception = $_.Exception.Message
-           $errorMessage = "$currentFunction - $projectUrl : $exception"
-           Write-ErrorFile $errorMessage
-       }
-       finally{
-           $ErrorActionPreference = "Continue"
-           $response
-       }
-   }
+    $response = $null
+    try {
+        $ErrorActionPreference = "Stop"
+        $Url = "$projectUrl/_apis/build/definitions?api-version=2.0"
+        if ($headers) {
+            $responseBody = Invoke-RestMethod -Uri $Url -Headers $headers -Body $body -Method Post -ContentType application/json;
+        }
+        else {
+            $responseBody = Invoke-RestMethod -Uri $Url -Body $body -Method Post -UseDefaultCredentials -ContentType application/json;
+        }
+        $response = $responseBody.ID
+    }
+    catch {
+        $currentFunction = $MyInvocation.MyCommand
+        $exception = $_.Exception.Message
+        $errorMessage = "$currentFunction - $projectUrl : $exception"
+        Write-ErrorFile $errorMessage
+    }
+    finally {
+        $ErrorActionPreference = "Continue"
+        $response
+    }
+}
    
-   function Get-BuildDefinitionIDs([string]$projectUrl, [psobject] $headers) {
+Function Get-BuildDefinitionIDs([string]$projectUrl, [psobject] $headers) {
     <#
    .SYNOPSIS
    
@@ -344,34 +358,34 @@ function New-BuildDefinition([string] $projectUrl, [string] $body, [psobject] $h
    Header to send with file.  If null, uses default credentials
    #>
    
-       $response = $null
-       try {
-           $ErrorActionPreference = "Stop"
-           $Url = "$projectUrl/_apis/build/definitions?api-version=2.0&type=build"
-           if($headers){
-               $response = Invoke-RestMethod -Uri $Url -Headers $headers -Body $body -Method Get -ContentType application/json;
-           }
-           else {
-               $response = Invoke-RestMethod -Uri $Url -Body $body -Method Get -UseDefaultCredentials -ContentType application/json;
-           }
-           $outItems = New-Object System.Collections.Generic.List[System.Object]
-           foreach ($id in $response.value.id) {
-               $outItems.Add($id)
-           }
+    $response = $null
+    try {
+        $ErrorActionPreference = "Stop"
+        $Url = "$projectUrl/_apis/build/definitions?api-version=2.0&type=build"
+        if ($headers) {
+            $response = Invoke-RestMethod -Uri $Url -Headers $headers -Body $body -Method Get -ContentType application/json;
+        }
+        else {
+            $response = Invoke-RestMethod -Uri $Url -Body $body -Method Get -UseDefaultCredentials -ContentType application/json;
+        }
+        $outItems = New-Object System.Collections.Generic.List[System.Object]
+        foreach ($id in $response.value.id) {
+            $outItems.Add($id)
+        }
    
-           $response = $outItems
-           }
-       catch{
-           $currentFunction = $MyInvocation.MyCommand
-           $exception = $_.Exception.Message
-           $errorMessage = "$currentFunction : $exception"
-           Write-ErrorFile $errorMessage
-       }
-       finally{
-           $ErrorActionPreference = "Continue"
-           $response
-       }
-   }
+        $response = $outItems
+    }
+    catch {
+        $currentFunction = $MyInvocation.MyCommand
+        $exception = $_.Exception.Message
+        $errorMessage = "$currentFunction : $exception"
+        Write-ErrorFile $errorMessage
+    }
+    finally {
+        $ErrorActionPreference = "Continue"
+        $response
+    }
+}
    
 #endregion
 
