@@ -87,6 +87,12 @@ Function Create-AgentPool($org, $headers, $poolName){
     return $result.value
 }
 
+Function Get-AgentPoolBuildAgents($org, $headers){
+    $URI = 'https://dev.azure.com/{0}/_apis/distributedtask/pools?api-version=6.0' -f $org 
+    $result = Invoke-RestMethod -Uri $URI -Method Get -ContentType application/json -Headers $headers 
+    return $result.value
+}
+
 Function CreateSampleAzurePipelineYML($path) {
     $yml = @'
 # Starter pipeline
