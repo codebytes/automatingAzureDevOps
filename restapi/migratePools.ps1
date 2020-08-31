@@ -41,20 +41,18 @@ Function GetBuildDef($org, $project, $headers, $definitionId) {
 Function UpdateBuildDef($org, $project, $headers, $definitionId, $body) {
     $URI = ("{0}/{1}/_apis/build/definitions/{2}?api-version=6.0" -f $org, $project, $definitionId)
     $agentsResponse = Invoke-WebRequest -Headers $headers -Uri $URI -Method Put -body $body  -ContentType "application/json"
-    $agents = convertFrom-JSON $agentsResponse.value
+    $agents = convertFrom-JSON $agentsResponse.Content
     return $agents.value
 }
 
 # $cPat | az devops login --org $cOrg
 $buildDef = az pipelines build definition show --org $cOrg --proj $cProj --id 59 -o json | convertfrom-json
 $buildDef.queue = @{
-    "id"=770
-    "name"="pool2"
+    "name"="pool1"
 }
-$buildDef.revision++
-$buildDef.PSObject.Properties.Remove('triggers')
-UpdateBuildDef $cOrg $cProj $cHeaders 59 ($buildDef | convertTo-json)
-
+$buildDefJson = $buildDef | ConvertTo-Json -Depth 100 -Compress
+$def = [System.Text.Encoding]::UTF8.GetBytes($buildDefJson)
+UpdateBuildDef $cOrg $cProj $cHeaders 59 $def
 
 # $buildDefs = az pipelines build definition list --project "Touchstone" -o json | convertfrom-json
 
