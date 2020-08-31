@@ -2,7 +2,7 @@
 #
 $ScriptDirectory = Split-Path -Path $MyInvocation.MyCommand.Definition -Parent
 try {
-    . ("$ScriptDirectory\..\devops\DevOpsFunctions.ps1")
+    . ("$ScriptDirectory\DevOpsFunctions.ps1")
 }
 catch {
     Write-Host "Error while loading supporting PowerShell Scripts" 
