@@ -71,24 +71,51 @@ Function GetRepos([uri]$projectUrl, $headers) {
 
 #region Pipelines
 
-Function Get-AgentPools($org, $headers){
-    $URI = 'https://dev.azure.com/{0}/_apis/distributedtask/pools?api-version=6.0' -f $org 
-    $result = Invoke-RestMethod -Uri $URI -Method Get -ContentType application/json -Headers $headers 
-    return $result.value
+Function GetBuildDef($org, $project, $headers, $definitionId) {
+    $URI = ("{0}/{1}/_apis/build/definitions/{2}?api-version=6.0" -f $org, $project, $definitionId)
+    $agentsResponse = Invoke-WebRequest -Headers $headers -Uri $URI -Method Get
+    $agents = convertFrom-JSON $agentsResponse.Content
+    return $agents
+}
+
+Function UpdateBuildDef($org, $project, $headers, $definitionId, $body) {
+    $URI = ("{0}/{1}/_apis/build/definitions/{2}?api-version=6.0" -f $org, $project, $definitionId)
+    $agentsResponse = Invoke-WebRequest -Headers $headers -Uri $URI -Method Put -body $body  -ContentType "application/json"
+    $agents = convertFrom-JSON $agentsResponse.Content
+    return $agents.value
+}
+Function GetAgentPools($org, $headers) {
+    $agentsResponse = Invoke-WebRequest -Headers $headers -Uri ("{0}/_apis/distributedtask/pools?api-version=6.0" -f $org)
+    $agents = convertFrom-JSON $agentsResponse.Content
+    return $agents.value
 }
 
 Function Create-AgentPool($org, $headers, $poolName){
-    $URI = 'https://dev.azure.com/{0}/_apis/distributedtask/pools?api-version=6.0' -f $org 
+    $URI = '{0}/_apis/distributedtask/pools?api-version=6.0' -f $org 
     $Body = @{ 
         autoProvision = $true 
-        name          = $poolName 
+        name          = $poolName
     } | ConvertTo-Json 
     $result = Invoke-RestMethod -Uri $URI -Method Post -Body $Body -ContentType application/json -Headers $headers 
     return $result.value
 }
 
+Function Remove-AgentPool($org, $headers, $poolId){
+    $URI = '{0}/_apis/distributedtask/pools/{1}?api-version=6.0' -f $org, $poolId
+    $result = Invoke-RestMethod -Uri $URI -Method Delete -ContentType application/json -Headers $headers 
+    return $result.value
+}
+
 Function Get-AgentPoolBuildAgents($org, $headers){
-    $URI = 'https://dev.azure.com/{0}/_apis/distributedtask/pools?api-version=6.0' -f $org 
+    $URI = '{0}/_apis/distributedtask/pools?api-version=6.0' -f $org 
+    $result = Invoke-RestMethod -Uri $URI -Method Get -ContentType application/json -Headers $headers 
+    return $result.value
+}
+
+Function GetAgentQueues($org, $project, $headers){
+    # https://docs.microsoft.com/en-us/rest/api/azure/devops/distributedtask/queues/get%20agent%20queues?view=azure-devops-rest-6.0
+    # https://dev.azure.com/{organization}/{project}/_apis/distributedtask/queues?api-version=6.0-preview.1
+    $URI = '{0}/{1}/_apis/distributedtask/queues?api-version=6.0-preview.1' -f $org, $project
     $result = Invoke-RestMethod -Uri $URI -Method Get -ContentType application/json -Headers $headers 
     return $result.value
 }

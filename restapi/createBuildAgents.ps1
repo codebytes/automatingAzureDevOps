@@ -12,13 +12,13 @@ catch {
 $Org = "chrisNewSig"
 $OrgUrl = "https://dev.azure.com/$($Org)"
 $username = "chris.ayers@newsignature.com"
-$PAT = ""
+$PAT = "nvzdqrk4qafewkizyhllzjxopdhsajrqhqfumokbarzchqmdjm2q"
 $rootFolder = "c:\agents"
 $mycredu = "testaccount"
 $mycredp = ConvertTo-SecureString "testaccount" -AsPlainText -Force
 
 $headers = Get-Headers $username $PAT
-$existingAgentPools = Get-AgentPools $Org $headers
+$existingAgentPools = GetAgentPools $OrgUrl $headers
 
 #region prepare agent files
 $AgentVersion = '2.174.1'

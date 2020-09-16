@@ -1,58 +1,69 @@
-$sourceOrg = "https://dev.azure.com/chrisNewSig/"
-$sourceUsername = "chris.ayers@newsignature.com"
-$sourcePersonalAccessToken = ""
+# region Include required files
+#
+$ScriptDirectory = Split-Path -Path $MyInvocation.MyCommand.Definition -Parent
+try {
+    . ("$ScriptDirectory\DevOpsFunctions.ps1")
+}
+catch {
+    Write-Host "Error while loading supporting PowerShell Scripts" 
+}
+#endregion
 
-$targetOrg = "https://dev.azure.com/chrisNewSig/"
-$targetUsername = "chris.ayers@newsignature.com"
-$targetPersonalAccessToken = ""
+$sourceOrg = "http://code:8080/tfs/Product_Development"
+$sourceUsername = "chris.ayers@newsignature.com"
+$sourcePersonalAccessToken = "xwh77iavxlidtkuqfladz7bgfxuvszpfnjmo7v2ou5id5cndzmzq"
+
+$targetOrg = "https://dev.azure.com/airworldwide-dryrun/"
+$targetProj = "Touchstone"
+$targetUsername = "I29812@verisk.com"
+$targetPersonalAccessToken = "uciyfnmvrlrdvmeaiunu34ner7enkolofxbxlcd7prphourdh2za"
 
 $cOrg = "https://dev.azure.com/chrisNewSig"
 $cProj = "PartsUnlimited"
 $cUname = "chris.ayers@newsignature.com"
-$cPat = ""
+$cPat = "nvzdqrk4qafewkizyhllzjxopdhsajrqhqfumokbarzchqmdjm2q"
 
-# Retrieve list of all repositories
-Function Get-Headers($username, $personalAccessToken) {
-    $base64AuthInfo = [Convert]::ToBase64String([Text.Encoding]::ASCII.GetBytes(("{0}:{1}" -f $username, $personalAccessToken)))
-    $headers = @{
-        "Authorization" = ("Basic {0}" -f $base64AuthInfo)
-        "Accept"        = "application/json"
-    }
-    return $headers;
-}
-
-$sourceHeaders = Get-Headers $sourceUsername $sourcePersonalAccessToken
-$targetHeaders = Get-Headers $targetUsername $targetPersonalAccessToken
+# $sourceHeaders = Get-Headers $sourceUsername $sourcePersonalAccessToken
+# $targetHeaders = Get-Headers $targetUsername $targetPersonalAccessToken
 $cHeaders = Get-Headers $cUname $cPat
 
-Function GetAgentPools($org, $headers) {
-    $agentsResponse = Invoke-WebRequest -Headers $headers -Uri ("{0}/_apis/distributedtask/pools?api-version=5.1" -f $sourceOrg)
-    $agents = convertFrom-JSON $agentsResponse.Content
-    return $agents.value
+Function ReplaceBuildDefinitionPool($buildDefinition, $pool){
+    $buildDefinition.queue = @{
+        "name"="$pool"
+    }
+    return $buildDefinition
 }
 
-Function GetBuildDef($org, $project, $headers, $definitionId) {
-    $URI = ("{0}/{1}/_apis/build/definitions/{2}?api-version=6.0" -f $org, $project, $definitionId)
-    $agentsResponse = Invoke-WebRequest -Headers $headers -Uri $URI -Method Get
-    $agents = convertFrom-JSON $agentsResponse.Content
-    return $agents
+Function ReplaceBuildStagePools($buildDefinition, $pool){
+    foreach($phase in $buildDefinition.process.phases){
+        if($phase.target.queue -ne $NULL){
+            $phase.target.queue = @{id=791}
+        }
+    }
+    
+    return $buildDefinition
 }
 
-Function UpdateBuildDef($org, $project, $headers, $definitionId, $body) {
-    $URI = ("{0}/{1}/_apis/build/definitions/{2}?api-version=6.0" -f $org, $project, $definitionId)
-    $agentsResponse = Invoke-WebRequest -Headers $headers -Uri $URI -Method Put -body $body  -ContentType "application/json"
-    $agents = convertFrom-JSON $agentsResponse.Content
-    return $agents.value
+Function ReplaceBuildPools($buildDefinition){
+    $buildDefinition = ReplaceBuildDefinitionPool $buildDefinition $buildDefinition.queue.name
+    # $buildDefinition = ReplaceBuildDefinitionPool $buildDefinition "pool2"
+    $buildDefinition = ReplaceBuildStagePools $buildDefinition
+
+    # $buildDefJson = $buildDefinition | ConvertTo-Json -Depth 100 -Compress
+    # $def = [System.Text.Encoding]::UTF8.GetBytes($buildDefJson)
+    $buildDefJson = $buildDefinition | ConvertTo-Json -Depth 100
+    # $def = [System.Text.Encoding]::UTF8.GetBytes($buildDefJson)
+    return $buildDefJson
 }
 
-# $cPat | az devops login --org $cOrg
-$buildDef = az pipelines build definition show --org $cOrg --proj $cProj --id 59 -o json | convertfrom-json
-$buildDef.queue = @{
-    "name"="pool1"
+$cPat | az devops login --org $cOrg
+$buildPipelines = az pipelines build definition list --org $cOrg --proj $cProj -o json | convertfrom-json
+foreach($buildPipeline in $buildPipelines)
+{
+    $buildDef = az pipelines build definition show --org $cOrg --proj $cProj --id $buildPipeline.id -o json | convertfrom-json
+    $def = ReplaceBuildPools $buildDef
+ #   UpdateBuildDef $cOrg $cProj $cHeaders $buildPipeline.id $def
 }
-$buildDefJson = $buildDef | ConvertTo-Json -Depth 100 -Compress
-$def = [System.Text.Encoding]::UTF8.GetBytes($buildDefJson)
-UpdateBuildDef $cOrg $cProj $cHeaders 59 $def
 
 # $buildDefs = az pipelines build definition list --project "Touchstone" -o json | convertfrom-json
 

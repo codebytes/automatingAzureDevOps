@@ -17,15 +17,11 @@ $headers = Get-Headers $username $PAT
 $existingAgentPools = GetAgentPools $Org $headers
 
 $path = "$ScriptDirectory\agentpools.csv";
-$csv = Import-Csv -path $path
-foreach ($line in $csv) { 
-    $poolName = $line.PoolName;
-    $poolId = $line.PoolId;
-    if($existingAgentPools  | Where-Object { $_.name -eq $poolName } ){
-        Write-Host $poolName "Exists"
-    } else {
-        Write-Host "Creating" $poolName
-        Create-AgentPool $Org $headers $poolName
+$listedPools = Import-Csv -path $path
+foreach ($pool in $existingAgentPools) { 
+    if($listedPools | Where-Object { $_.PoolName -eq $pool.name } ){
+        Write-Host $pool.name "Exists"
+        Remove-AgentPool $Org $headers $pool.id
     }
 }
 
