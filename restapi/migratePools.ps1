@@ -9,19 +9,19 @@ catch {
 }
 #endregion
 
-$sourceOrg = "http://code:8080/tfs/Product_Development"
+$sourceOrg = ""
 $sourceUsername = "chris.ayers@newsignature.com"
-$sourcePersonalAccessToken = "xwh77iavxlidtkuqfladz7bgfxuvszpfnjmo7v2ou5id5cndzmzq"
+$sourcePersonalAccessToken = ""
 
-$targetOrg = "https://dev.azure.com/airworldwide-dryrun/"
+$targetOrg = ""
 $targetProj = "Touchstone"
-$targetUsername = "I29812@verisk.com"
-$targetPersonalAccessToken = "uciyfnmvrlrdvmeaiunu34ner7enkolofxbxlcd7prphourdh2za"
+$targetUsername = ""
+$targetPersonalAccessToken = ""
 
 $cOrg = "https://dev.azure.com/chrisNewSig"
 $cProj = "PartsUnlimited"
 $cUname = "chris.ayers@newsignature.com"
-$cPat = "nvzdqrk4qafewkizyhllzjxopdhsajrqhqfumokbarzchqmdjm2q"
+$cPat = ""
 
 # $sourceHeaders = Get-Headers $sourceUsername $sourcePersonalAccessToken
 # $targetHeaders = Get-Headers $targetUsername $targetPersonalAccessToken

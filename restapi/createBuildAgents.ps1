@@ -12,7 +12,7 @@ catch {
 $Org = "chrisNewSig"
 $OrgUrl = "https://dev.azure.com/$($Org)"
 $username = "chris.ayers@newsignature.com"
-$PAT = "nvzdqrk4qafewkizyhllzjxopdhsajrqhqfumokbarzchqmdjm2q"
+$PAT = ""
 $rootFolder = "c:\agents"
 $mycredu = "testaccount"
 $mycredp = ConvertTo-SecureString "testaccount" -AsPlainText -Force

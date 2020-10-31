@@ -12,7 +12,7 @@ catch {
 $org = "https://dev.azure.com/chrisNewSig"
 $project = "PartsUnlimited"
 $username = "chris.ayers@newsignature.com"
-$PAT = "nvzdqrk4qafewkizyhllzjxopdhsajrqhqfumokbarzchqmdjm2q"
+$PAT = ""
 
 $headers = Get-Headers $username $PAT
 $existingAgentPools = GetAgentPools $Org $headers
